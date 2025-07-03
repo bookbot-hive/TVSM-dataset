@@ -4,12 +4,18 @@ import librosa
 import torch
 import torchvision.transforms as T
 import torchaudio
-from pcen import PCENTransform
+from .pcen import PCENTransform
 import tqdm
-import CRNN
+from . import CRNN
 import argparse
 import csv
-from utils import mono_check
+
+# Add utils module with mono_check function
+def mono_check(audio):
+    """Check if audio is mono, if not convert it to mono"""
+    if audio.shape[0] > 1:
+        audio = torch.mean(audio, dim=0, keepdim=True)
+    return audio
 
 sr = 16000
 n_fft = 1024
@@ -30,8 +36,11 @@ def model_creator():
 
 # pseudo_model_path = 'abc'
 class SMDetector:
-    def __init__(self, model_path):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, model_path, cuda_device=None):
+        if cuda_device is not None:
+            self.device = torch.device(f"cuda:{cuda_device}" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = model_path
         self.model = model_creator()
         self.load_from_checkpoint(model_path)
